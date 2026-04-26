@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+
+/* ── DAY THEME ── */
+body.day {
+  --gold:#e8900a;--gold2:#c97000;--green:#1a8a4a;--red:#cc1133;--blue:#1a5fb4;
+  --bg:#f5f0e8;--bg2:#fffdf5;--bg3:#ede8d8;--bg4:#e0d8c0;
+  --border:rgba(180,130,0,0.2);--text:#2a1f00;--dim:#8a7a50;
+  --card-bg:#fff8e8;
+}
+/* ── NIGHT THEME ── */
+body.night {
+  --gold:#f5c518;--gold2:#e8a000;--green:#00e676;--red:#ff1744;--blue:#448aff;
+  --bg:#08080f;--bg2:#0f0f1c;--bg3:#161626;--bg4:#1c1c2e;
+  --border:rgba(245,197,24,0.15);--text:#ddd8f0;--dim:#6b6890;
+  --card-bg:#0f0f1c;
+}
+
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh;transition:background .4s,color .4s;}
+
+/* ── LOADER ── */
+#loader{position:fixed;inset:0;z-index:9999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+  transition:opacity .5s;}
+body.day #loader{background:#f5f0e8;}
+body.night #loader{background:#08080f;}
+.ld-dice{font-size:60px;animation:spin 2s ease-in-out infinite;margin-bottom:18px;}
+@keyframes spin{0%,100%{transform:scale(1)rotate(0);}50%{transform:scale(1.2)rotate(15deg);}}
+.ld-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,8vw,72px);
+  letter-spacing:8px;color:var(--gold);line-height:1;
+  text-shadow:0 0 30px rgba(245,197,24,0.5);}
+.ld-sub{font-size:13px;letter-spacing:6px;color:var(--dim);margin-top:6px;text-transform:uppercase;}
+.ld-name{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;color:var(--text);
+  margin-top:20px;opacity:0;animation:fin .6s ease .9s forwards;}
+@keyframes fin{to{opacity:1;}}
+.ld-bar-wrap{width:min(280px,80vw);height:3px;background:var(--border);
+  border-radius:2px;margin-top:24px;overflow:hidden;}
+.ld-bar{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));
+  box-shadow:0 0 10px var(--gold);animation:fill 2.5s cubic-bezier(.4,0,.2,1) forwards;}
+@keyframes fill{from{width:0}to{width:100%}}
+.ld-dots{margin-top:12px;display:flex;gap:8px;}
+.ld-dots span{width:6px;height:6px;border-radius:50%;background:var(--gold);opacity:.3;
+  animation:dot 1.2s ease-in-out infinite;}
+.ld-dots span:nth-child(2){animation-delay:.2s}
+.ld-dots span:nth-child(3){animation-delay:.4s}
+@keyframes dot{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-6px)}}
+
+#app{display:none;position:relative;z-index:1;}
+
+/* ── HEADER ── */
+header{background:var(--card-bg);border-bottom:1px solid var(--border);
+  backdrop-filter:blur(20px);padding:0 20px;height:56px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 12px rgba(0,0,0,.1);}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;color:var(--gold);}
+.logo em{color:var(--text);font-style:normal;}
+.hdr-r{display:flex;align-items:center;gap:12px;}
+.live{display:flex;align-items:center;gap:5px;background:rgba(0,200,80,.1);
+  border:1px solid rgba(0,200,80,.3);border-radius:20px;padding:3px 10px;
+  font-size:11px;font-weight:700;color:var(--green);letter-spacing:2px;}
+.ldot{width:6px;height:6px;border-radius:50%;background:var(--green);
+  animation:blink 1s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+#clock{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--gold);letter-spacing:2px;}
+
+/* ── DAY/NIGHT TOGGLE ── */
+.dn-toggle{display:flex;align-items:center;gap:0;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:24px;padding:3px;cursor:pointer;}
+.dn-btn{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;
+  padding:4px 14px;border-radius:20px;transition:all .2s;
+  border:none;cursor:pointer;background:transparent;color:var(--dim);}
+.dn-btn.active-day{background:linear-gradient(135deg,#f5c518,#e8a000);color:#000;}
+.dn-btn.active-night{background:linear-gradient(135deg,#1a1a3e,#448aff);color:#fff;}
+
+/* ── DATE BAR ── */
+.datebar{background:var(--card-bg);border-bottom:1px solid var(--border);
+  padding:8px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.datebar label{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--dim);}
+input[type=date]{background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  color:var(--gold);font-family:'Share Tech Mono',monospace;font-size:13px;
+  padding:5px 10px;outline:none;cursor:pointer;}
+.btn{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;
+  border:none;border-radius:8px;padding:5px 14px;cursor:pointer;transition:all .2s;}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.1);}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#fff;}
+.btn-dim{background:transparent;border:1px solid var(--border);color:var(--gold);}
+.btn-red{background:transparent;border:1px solid rgba(200,20,50,.4);color:var(--red);}
+.refresh-note{margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);}
+
+/* ── MAIN ── */
+main{padding:18px 20px;max-width:1400px;margin:0 auto;}
+
+/* ── TOP CARDS ── */
+.top-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:22px;}
+.tcard{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;
+  padding:16px 14px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;}
+.tcard:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.15);}
+.tcard::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--tc-accent,linear-gradient(90deg,var(--gold),var(--gold2)));}
+.tcard.c-green{--tc-accent:linear-gradient(90deg,var(--green),#00bfa5);}
+.tcard.c-blue {--tc-accent:linear-gradient(90deg,var(--blue),#651fff);}
+.tcard.c-red  {--tc-accent:linear-gradient(90deg,var(--red),#ff6d00);}
+.tcard.c-orange{--tc-accent:linear-gradient(90deg,#ff9800,#ff5722);}
+.tc-ico{font-size:18px;margin-bottom:4px;}
+.tc-lbl{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:2px;color:var(--dim);}
+.tc-val{font-family:'Share Tech Mono',monospace;font-size:clamp(17px,2.5vw,24px);
+  color:var(--gold);margin-top:2px;}
+.tc-val.green{color:var(--green);}
+.tc-val.blue{color:var(--blue);}
+.tc-val.red{color:var(--red);}
+.tc-val.orange{color:#ff9800;}
+
+/* ── SECTION HEADING ── */
+.sec-hd{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:3px;
+  color:var(--gold);margin-bottom:12px;padding-bottom:7px;
+  border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+
+/* ── STEP CARDS ── */
+.steps-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:24px;}
+.step-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.step-top{background:rgba(245,197,24,0.07);border-bottom:1px solid var(--border);
+  padding:9px 14px;display:flex;align-items:center;justify-content:space-between;}
+.step-num{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--gold);}
+.step-grand{font-family:'Share Tech Mono',monospace;font-size:16px;color:var(--green);}
+.step-body{padding:10px 14px;}
+.srow{display:flex;justify-content:space-between;align-items:center;
+  padding:4px 0;border-bottom:1px solid rgba(128,128,128,.08);font-size:13px;}
+.srow:last-child{border:none;}
+.srow-lbl{color:var(--dim);font-size:12px;letter-spacing:1px;}
+.srow-val{font-family:'Share Tech Mono',monospace;font-size:13px;}
+.srow-val.gold{color:var(--gold);}
+.srow-val.green{color:var(--green);font-size:15px;font-weight:700;}
+.mkt-chip{display:inline-block;background:rgba(68,138,255,.1);border:1px solid rgba(68,138,255,.25);
+  border-radius:5px;padding:1px 7px;font-size:10px;font-weight:700;color:var(--blue);
+  letter-spacing:1px;margin:2px;}
+
+/* ── PANEL TABLE ── */
+.panel{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;margin-bottom:24px;}
+.panel-hd{background:rgba(245,197,24,.05);border-bottom:1px solid var(--border);
+  padding:10px 16px;font-family:'Bebas Neue',sans-serif;font-size:16px;
+  letter-spacing:2px;color:var(--gold);}
+table{width:100%;border-collapse:collapse;}
+thead th{background:rgba(245,197,24,.05);color:var(--gold);font-family:'Bebas Neue',sans-serif;
+  font-size:13px;letter-spacing:1.5px;text-align:left;padding:8px 14px;
+  border-bottom:1px solid var(--border);}
+tbody tr{border-bottom:1px solid rgba(128,128,128,.06);transition:background .15s;}
+tbody tr:hover{background:rgba(245,197,24,.03);}
+tbody td{padding:8px 14px;font-size:13px;}
+.mono{font-family:'Share Tech Mono',monospace;}
+.amt-green{font-family:'Share Tech Mono',monospace;color:var(--green);}
+.amt-red{font-family:'Share Tech Mono',monospace;color:var(--red);}
+.amt-blue{font-family:'Share Tech Mono',monospace;color:var(--blue);}
+.dim{color:var(--dim);}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:1px;}
+.badge-open{background:rgba(68,138,255,.1);color:var(--blue);border:1px solid rgba(68,138,255,.25);}
+.badge-close{background:rgba(150,0,200,.1);color:#c040fb;border:1px solid rgba(150,0,200,.2);}
+.step-tag{background:rgba(245,197,24,.12);color:var(--gold);border:1px solid rgba(245,197,24,.2);
+  border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;letter-spacing:1px;}
+.badge-day{background:rgba(245,165,0,.15);color:#e8900a;border:1px solid rgba(245,165,0,.3);}
+.badge-night{background:rgba(68,100,255,.15);color:#448aff;border:1px solid rgba(68,100,255,.3);}
+.badge-cancelled{background:rgba(255,23,68,.1);color:var(--red);border:1px solid rgba(255,23,68,.25);}
+.empty{text-align:center;padding:30px;color:var(--dim);font-size:15px;}
+
+/* ── REJECTED ── */
+.rej-row{background:rgba(255,100,0,.04);}
+.rej-text{font-size:12px;color:var(--dim);max-width:400px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:4px;margin-bottom:18px;flex-wrap:wrap;}
+.tab{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;
+  padding:6px 16px;border-radius:8px;cursor:pointer;
+  background:var(--bg3);border:1px solid var(--border);color:var(--dim);transition:all .2s;}
+.tab.active{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;border-color:transparent;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--card-bg);border:1px solid var(--gold);border-radius:10px;
+  padding:8px 20px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;
+  color:var(--gold);z-index:9999;transition:transform .3s ease;}
+#toast.show{transform:translateX(-50%) translateY(0);}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:rgba(200,160,0,.3);border-radius:3px;}
+@media(max-width:700px){main{padding:12px;}header{padding:0 12px;}.datebar{padding:7px 12px;}}
+</style>
+</head>
+<body class="night">
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="ld-dice" id="ld-dice">🎰</div>
+  <div class="ld-title">ADMIN PANEL</div>
+  <div class="ld-sub">Admin Panel</div>
+  <div class="ld-name">🎰 ADMIN PANEL 🎰</div>
+  <div class="ld-bar-wrap"><div class="ld-bar"></div></div>
+  <div class="ld-dots"><span></span><span></span><span></span></div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="logo">MATKA <em>ADMIN</em></div>
+    <div class="hdr-r">
+      <!-- DAY / NIGHT TOGGLE -->
+      <div class="dn-toggle">
+        <button class="dn-btn" id="btn-day" onclick="switchMode('day')">☀️ DAY</button>
+        <button class="dn-btn active-night" id="btn-night" onclick="switchMode('night')">🌙 NIGHT</button>
+      </div>
+      <div class="live"><div class="ldot"></div>LIVE</div>
+      <div id="clock">--:--:--</div>
+    </div>
+  </header>
+
+  <div class="datebar">
+    <label>📅</label>
+    <input type="date" id="datePick" onchange="loadData()">
+    <button class="btn btn-gold" onclick="goToday()">AAJ</button>
+    <button class="btn btn-dim" onclick="refreshData()">🔄 REFRESH</button>
+    <button class="btn btn-dim" onclick="exportCSV()">⬇ CSV</button>
+    <button class="btn btn-red" onclick="doReset()">RESET</button>
+    <span class="refresh-note">Auto: 30s</span>
+  </div>
+
+  <main>
+    <!-- TOP CARDS -->
+    <div class="top-cards">
+      <div class="tcard">
+        <div class="tc-ico">💰</div>
+        <div class="tc-lbl">GRAND TOTAL</div>
+        <div class="tc-val" id="t-grand">₹0</div>
+      </div>
+      <div class="tcard c-red">
+        <div class="tc-ico">📨</div>
+        <div class="tc-lbl">MESSAGES</div>
+        <div class="tc-val red" id="t-msgs">0</div>
+      </div>
+      <div class="tcard c-blue">
+        <div class="tc-ico">🎲</div>
+        <div class="tc-lbl">STEPS</div>
+        <div class="tc-val blue" id="t-steps">0</div>
+      </div>
+      <div class="tcard c-red">
+        <div class="tc-ico">🚫</div>
+        <div class="tc-lbl">CANCELLED</div>
+        <div class="tc-val red" id="t-cancelled">0</div>
+      </div>
+      <div class="tcard c-orange">
+        <div class="tc-ico">⚠️</div>
+        <div class="tc-lbl">REJECTED</div>
+        <div class="tc-val orange" id="t-rejected">0</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('dashboard',this)">📊 DASHBOARD</button>
+      <button class="tab" onclick="switchTab('rejected',this)">⚠️ REJECTED</button>
+    </div>
+
+    <!-- DASHBOARD TAB -->
+    <div id="tab-dashboard">
+      <div class="sec-hd">🎲 STEP-WISE TOTAL</div>
+      <div class="steps-wrap" id="steps-wrap">
+        <div class="empty">Koi data nahi...</div>
+      </div>
+
+      <div class="sec-hd">🏪 MARKET-WISE TOTAL</div>
+      <div class="panel">
+        <table>
+          <thead><tr><th>MARKET</th><th>SESSION</th><th>GROUP</th><th>STEP</th><th>TOTAL</th></tr></thead>
+          <tbody id="mkt-body"></tbody>
+        </table>
+      </div>
+
+      <div class="sec-hd">📱 SABHI MESSAGES</div>
+      <div class="panel">
+        <table>
+          <thead><tr><th>TIME</th><th>STEP</th><th>GROUP</th><th>MARKET</th><th>SESSION</th><th>TOTAL</th></tr></thead>
+          <tbody id="msgs-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REJECTED TAB -->
+    <div id="tab-rejected" style="display:none;">
+      <div class="sec-hd">⚠️ REJECTED MESSAGES <span style="font-size:14px;color:var(--dim);font-family:'Rajdhani',sans-serif;">(total detect nahi hua)</span></div>
+      <div class="panel">
+        <table>
+          <thead><tr><th>TIME</th><th>GROUP</th><th>MESSAGE</th></tr></thead>
+          <tbody id="rej-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let DATA = { messages: [], rejected: [] };
+let currentDate = getSessionDate();
+let currentMode = 'night'; // day or night
+let currentTab = 'dashboard';
+
+// ── INIT
+window.onload = () => {
+  // Set theme from localStorage
+  const saved = localStorage.getItem('sm_mode') || 'night';
+  applyMode(saved, false);
+
+  setTimeout(() => {
+    const ld = document.getElementById('loader');
+    ld.style.opacity = '0';
+    setTimeout(() => {
+      ld.style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      init();
+    }, 500);
+  }, 2700);
+};
+
+function init() {
+  document.getElementById('datePick').value = currentDate;
+  startClock();
+  loadData();
+  setInterval(loadData, 30000);
+}
+
+// ── DAY / NIGHT MODE
+function switchMode(mode) {
+  applyMode(mode, true);
+  loadData();
+}
+
+function applyMode(mode, animate) {
+  currentMode = mode;
+  localStorage.setItem('sm_mode', mode);
+  document.body.className = mode;
+
+  const btnDay = document.getElementById('btn-day');
+  const btnNight = document.getElementById('btn-night');
+  const dice = document.getElementById('ld-dice');
+
+  btnDay.className = 'dn-btn' + (mode==='day' ? ' active-day' : '');
+  btnNight.className = 'dn-btn' + (mode==='night' ? ' active-night' : '');
+  if (dice) dice.textContent = mode === 'day' ? '☀️' : '🌙';
+
+  if (animate) toast(mode === 'day' ? '☀️ Day Mode' : '🌙 Night Mode');
+}
+
+// ── SESSION DATE
+function getSessionDate() {
+  const now = new Date();
+  if (now.getHours() < 1 || (now.getHours()===1 && now.getMinutes()<30)) {
+    const p = new Date(now); p.setDate(p.getDate()-1);
+    return p.toISOString().split('T')[0];
+  }
+  return now.toISOString().split('T')[0];
+}
+
+function goToday() {
+  currentDate = getSessionDate();
+  document.getElementById('datePick').value = currentDate;
+  loadData();
+}
+
+// ── CLOCK
+function startClock() {
+  const t = () => document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  t(); setInterval(t, 1000);
+}
+
+// ── LOAD DATA
+async function loadData() {
+  currentDate = document.getElementById('datePick').value || getSessionDate();
+  try {
+    const res = await fetch('/api/data?date='+currentDate);
+    if (res.ok) {
+      const all = await res.json();
+      // Filter by current mode group
+      const grp = currentMode.toUpperCase(); // DAY or NIGHT
+      DATA = {
+        messages: (all.messages||[]).filter(m => !m.group || m.group === grp),
+        rejected: (all.rejected||[]).filter(r => !r.group || r.group === grp),
+      };
+    } else { DATA = demoData(); }
+  } catch { DATA = demoData(); }
+  render();
+}
+
+async function refreshData() {
+  await loadData();
+  toast('✅ Refreshed!');
+}
+
+// ── DEMO DATA
+function demoData() {
+  const d = getSessionDate();
+  return {
+    messages: [
+      {id:1,step:1,market:'KALYAN',session:'OPEN',group:'DAY',total:300,cancelled:false,timestamp:d+'T10:30:00Z'},
+      {id:2,step:1,market:'MILAN',session:'CLOSE',group:'DAY',total:500,cancelled:false,timestamp:d+'T11:00:00Z'},
+      {id:3,step:2,market:'SRIDEVI',session:'OPEN',group:'NIGHT',total:200,cancelled:false,timestamp:d+'T11:30:00Z'},
+      {id:4,step:1,market:'MILAN',session:'OPEN',group:'DAY',total:-300,cancelled:true,timestamp:d+'T12:00:00Z'},
+    ],
+    rejected: [
+      {id:1,group:'DAY',rawMessage:'ok bhai',timestamp:d+'T10:45:00Z'},
+      {id:2,group:'NIGHT',rawMessage:'👍',timestamp:d+'T11:15:00Z'},
+    ]
+  };
+}
+
+// ── RENDER
+function render() {
+  const msgs = DATA.messages || [];
+  const rejected = DATA.rejected || [];
+  renderTotals(msgs, rejected);
+  renderSteps(msgs);
+  renderMarkets(msgs);
+  renderMsgs(msgs);
+  renderRejected(rejected);
+}
+
+// ── TOTALS
+function renderTotals(msgs, rejected) {
+  const grand = msgs.reduce((s,m)=>s+(m.total||0),0);
+  const steps = new Set(msgs.map(m=>m.step||1)).size;
+  const cancelled = msgs.filter(m=>m.cancelled).length;
+
+  const el = document.getElementById('t-grand');
+  if (el) {
+    setTimeout(()=>{
+      el.textContent=(grand<0?'-₹':'₹')+Math.abs(grand).toLocaleString('en-IN');
+      el.style.color = grand<0?'var(--red)':'var(--gold)';
+    }, 650);
+  }
+  anim('t-msgs', msgs.length);
+  anim('t-steps', steps);
+  anim('t-cancelled', cancelled);
+  anim('t-rejected', rejected.length);
+}
+
+function anim(id, target, pre='') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const dur=600, t0=performance.now();
+  const run = now => {
+    const p = Math.min((now-t0)/dur,1);
+    el.textContent = pre+Math.floor(p*target).toLocaleString('en-IN');
+    if(p<1)requestAnimationFrame(run);
+    else el.textContent=pre+target.toLocaleString('en-IN');
+  };
+  requestAnimationFrame(run);
+}
+
+// ── STEPS
+function renderSteps(msgs) {
+  const byStep={};
+  msgs.forEach(m=>{
+    const s=m.step||1;
+    if(!byStep[s])byStep[s]={total:0,count:0,markets:new Set()};
+    byStep[s].total+=m.total||0;
+    byStep[s].count++;
+    if(m.market&&m.market!=='UNKNOWN')byStep[s].markets.add(m.market);
+  });
+  const wrap=document.getElementById('steps-wrap');
+  const keys=Object.keys(byStep).sort((a,b)=>+a-+b);
+  if(!keys.length){wrap.innerHTML='<div class="empty">Koi data nahi aaj ka...</div>';return;}
+  const emojis={1:'1️⃣',2:'2️⃣',3:'3️⃣',4:'4️⃣',5:'5️⃣'};
+  wrap.innerHTML=keys.map(s=>{
+    const d=byStep[s];
+    const neg=d.total<0;
+    const mkts=[...d.markets].map(m=>`<span class="mkt-chip">${m}</span>`).join('');
+    return`<div class="step-card">
+      <div class="step-top">
+        <div class="step-num">${emojis[s]||'🎲'} STEP ${s}</div>
+        <div class="step-grand" style="color:${neg?'var(--red)':'var(--green)'}">
+          ${neg?'-₹':'₹'}${Math.abs(d.total).toLocaleString('en-IN')}
+        </div>
+      </div>
+      <div class="step-body">
+        ${mkts?`<div style="margin-bottom:8px;">${mkts}</div>`:''}
+        <div class="srow">
+          <span class="srow-lbl">MESSAGES</span>
+          <span class="srow-val" style="color:var(--dim)">${d.count}</span>
+        </div>
+        <div class="srow" style="margin-top:4px;padding-top:6px;border-top:1px solid var(--border);">
+          <span class="srow-lbl" style="font-weight:700;">STEP TOTAL</span>
+          <span class="srow-val green" style="color:${neg?'var(--red)':'var(--green)'}">
+            ${neg?'-₹':'₹'}${Math.abs(d.total).toLocaleString('en-IN')}
+          </span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── MARKETS
+function renderMarkets(msgs) {
+  const byKey={};
+  msgs.forEach(m=>{
+    const key=`${m.step||1}__${m.market||'UNKNOWN'}__${m.session||'OPEN'}`;
+    if(!byKey[key])byKey[key]={step:m.step||1,market:m.market||'UNKNOWN',session:m.session||'OPEN',group:m.group||'',total:0,count:0};
+    byKey[key].total+=m.total||0;
+    byKey[key].count++;
+  });
+  const rows=Object.values(byKey).sort((a,b)=>a.step-b.step||b.total-a.total);
+  const tbody=document.getElementById('mkt-body');
+  if(!rows.length){tbody.innerHTML='<tr><td colspan="5" class="empty">No data</td></tr>';return;}
+  tbody.innerHTML=rows.map(r=>{
+    const neg=r.total<0;
+    return`<tr>
+      <td style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;">${r.market}</td>
+      <td><span class="badge badge-${r.session.toLowerCase()}">${r.session}</span></td>
+      <td><span class="badge badge-${(r.group||'day').toLowerCase()}">${r.group||'—'}</span></td>
+      <td><span class="step-tag">STEP ${r.step}</span></td>
+      <td class="mono" style="font-size:16px;font-weight:700;color:${neg?'var(--red)':'var(--green)'}">
+        ${neg?'-₹':'₹'}${Math.abs(r.total).toLocaleString('en-IN')}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── ALL MESSAGES
+function renderMsgs(msgs) {
+  const tbody=document.getElementById('msgs-body');
+  const sorted=[...msgs].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+  if(!sorted.length){tbody.innerHTML='<tr><td colspan="6" class="empty">No messages</td></tr>';return;}
+  tbody.innerHTML=sorted.map(m=>{
+    const cancelled=m.cancelled===true;
+    const neg=(m.total||0)<0;
+    const color=cancelled||neg?'var(--red)':'var(--green)';
+    const totalStr=(neg?'-₹':'₹')+Math.abs(m.total||0).toLocaleString('en-IN')+(cancelled?' 🚫':'');
+    return`<tr style="${cancelled?'background:rgba(255,23,68,.04)':''}">
+      <td class="dim" style="font-size:11px;">${new Date(m.timestamp).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td>
+      <td><span class="step-tag">STEP ${m.step||1}</span></td>
+      <td><span class="badge badge-${(m.group||'day').toLowerCase()}">${m.group||'—'}</span></td>
+      <td style="font-family:'Bebas Neue',sans-serif;font-size:14px;">${m.market||'—'}</td>
+      <td><span class="badge badge-${(m.session||'open').toLowerCase()}">${m.session||'OPEN'}</span></td>
+      <td class="mono" style="font-size:14px;font-weight:700;color:${color}">${totalStr}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── REJECTED
+function renderRejected(rejected) {
+  const tbody=document.getElementById('rej-body');
+  if(!rejected.length){tbody.innerHTML='<tr><td colspan="3" class="empty">🎉 Koi rejected message nahi!</td></tr>';return;}
+  const sorted=[...rejected].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+  tbody.innerHTML=sorted.map(r=>`
+    <tr class="rej-row">
+      <td class="dim" style="font-size:11px;white-space:nowrap;">
+        ${new Date(r.timestamp).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}
+      </td>
+      <td><span class="badge badge-${(r.group||'day').toLowerCase()}">${r.group||'—'}</span></td>
+      <td class="rej-text" title="${(r.rawMessage||'').replace(/"/g,"'")}">${r.rawMessage||'—'}</td>
+    </tr>`).join('');
+}
+
+// ── TABS
+function switchTab(tab, el) {
+  currentTab = tab;
+  document.getElementById('tab-dashboard').style.display = tab==='dashboard'?'':'none';
+  document.getElementById('tab-rejected').style.display = tab==='rejected'?'':'none';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
+
+// ── CSV EXPORT
+function exportCSV() {
+  const msgs=DATA.messages||[];
+  const rows=[['Time','Step','Group','Market','Session','Total','Cancelled']];
+  msgs.forEach(m=>rows.push([
+    new Date(m.timestamp).toLocaleString('en-IN'),
+    m.step||1,m.group||'',m.market||'',m.session||'',m.total||0,m.cancelled?'YES':''
+  ]));
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='matka-admin-'+currentDate+'-'+currentMode+'.csv';
+  a.click();
+  toast('⬇ CSV Downloaded!');
+}
+
+// ── RESET
+async function doReset() {
+  if(!confirm(currentDate+' ka '+currentMode+' data reset karna hai?'))return;
+  try{
+    await fetch('/api/reset?date='+currentDate,{method:'POST'});
+    toast('🔄 Reset Done!');
+    loadData();
+  }catch{toast('Reset failed!');}
+}
+
+// ── TOAST
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+</script>
+</body>
+</html>
