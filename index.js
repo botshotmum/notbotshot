@@ -9,6 +9,10 @@ const db = require('./database');
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Explicit panel route
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'panel.html')));
+app.get('/panel', (req, res) => res.sendFile(path.join(__dirname, 'public', 'panel.html')));
 app.get('/api/data', (req, res) => res.json(db.getDataForDate(req.query.date || db.getSessionDate())));
 app.get('/api/rejected', (req, res) => res.json(db.getRejected(req.query.date || db.getSessionDate())));
 app.post('/api/reset', (req, res) => { db.resetDate(req.query.date || db.getSessionDate()); res.json({ ok: true }); });
