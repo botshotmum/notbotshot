@@ -213,10 +213,16 @@ tbody td{padding:8px 14px;font-size:13px;}
   <header>
     <div class="logo">MATKA <em>ADMIN</em></div>
     <div class="hdr-r">
-      <!-- DAY / NIGHT TOGGLE -->
-      <div class="dn-toggle">
-        <button class="dn-btn" id="btn-day" onclick="switchMode('day')">☀️ DAY</button>
-        <button class="dn-btn active-night" id="btn-night" onclick="switchMode('night')">🌙 NIGHT</button>
+      <!-- DAY / NIGHT SWITCH -->
+      <div style="display:flex;gap:0;background:var(--bg3);border-radius:8px;padding:3px;">
+        <button id="btn-day" onclick="switchMode('day')"
+          style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;
+          padding:5px 18px;border:none;border-radius:6px;cursor:pointer;transition:all .2s;
+          background:transparent;color:var(--dim);">☀️ DAY</button>
+        <button id="btn-night" onclick="switchMode('night')"
+          style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;
+          padding:5px 18px;border:none;border-radius:6px;cursor:pointer;transition:all .2s;
+          background:transparent;color:var(--dim);">🌙 NIGHT</button>
       </div>
       <div class="live"><div class="ldot"></div>LIVE</div>
       <div id="clock">--:--:--</div>
@@ -241,15 +247,20 @@ tbody td{padding:8px 14px;font-size:13px;}
         <div class="tc-lbl">GRAND TOTAL</div>
         <div class="tc-val" id="t-grand">₹0</div>
       </div>
+      <div class="tcard" style="--tc-accent:linear-gradient(90deg,#f5a623,#e8900a);">
+        <div class="tc-ico">☀️</div>
+        <div class="tc-lbl">DAY TOTAL</div>
+        <div class="tc-val" id="t-day" style="color:#f5a623;">₹0</div>
+      </div>
+      <div class="tcard c-blue">
+        <div class="tc-ico">🌙</div>
+        <div class="tc-lbl">NIGHT TOTAL</div>
+        <div class="tc-val blue" id="t-night">₹0</div>
+      </div>
       <div class="tcard c-red">
         <div class="tc-ico">📨</div>
         <div class="tc-lbl">MESSAGES</div>
         <div class="tc-val red" id="t-msgs">0</div>
-      </div>
-      <div class="tcard c-blue">
-        <div class="tc-ico">🎲</div>
-        <div class="tc-lbl">STEPS</div>
-        <div class="tc-val blue" id="t-steps">0</div>
       </div>
       <div class="tcard c-red">
         <div class="tc-ico">🚫</div>
@@ -353,8 +364,16 @@ function applyMode(mode, animate) {
   const btnNight = document.getElementById('btn-night');
   const dice = document.getElementById('ld-dice');
 
-  btnDay.className = 'dn-btn' + (mode==='day' ? ' active-day' : '');
-  btnNight.className = 'dn-btn' + (mode==='night' ? ' active-night' : '');
+  const dayActive = mode==='day';
+  const nightActive = mode==='night';
+  if(btnDay) {
+    btnDay.style.background = dayActive ? 'linear-gradient(135deg,#f5c518,#e8a000)' : 'transparent';
+    btnDay.style.color = dayActive ? '#000' : 'var(--dim)';
+  }
+  if(btnNight) {
+    btnNight.style.background = nightActive ? 'linear-gradient(135deg,#1a1a3e,#448aff)' : 'transparent';
+    btnNight.style.color = nightActive ? '#fff' : 'var(--dim)';
+  }
   if (dice) dice.textContent = mode === 'day' ? '☀️' : '🌙';
 
   if (animate) toast(mode === 'day' ? '☀️ Day Mode' : '🌙 Night Mode');
@@ -390,9 +409,10 @@ async function loadData() {
     const res = await fetch('/api/data?date='+currentDate);
     if (res.ok) {
       const all = await res.json();
-      // Filter by current mode group
-      const grp = currentMode.toUpperCase(); // DAY or NIGHT
+      const grp = currentMode.toUpperCase();
+      // Store ALL messages for grand total cards
       DATA = {
+        allMessages: all.messages||[],
         messages: (all.messages||[]).filter(m => !m.group || m.group === grp),
         rejected: (all.rejected||[]).filter(r => !r.group || r.group === grp),
       };
@@ -436,10 +456,15 @@ function render() {
 
 // ── TOTALS
 function renderTotals(msgs, rejected) {
-  const grand = msgs.reduce((s,m)=>s+(m.total||0),0);
+  // All messages from both groups for grand total
+  const allMsgs = DATA.allMessages || msgs;
+  const grand = allMsgs.reduce((s,m)=>s+(m.total||0),0);
+  const dayTotal = allMsgs.filter(m=>m.group==='DAY').reduce((s,m)=>s+(m.total||0),0);
+  const nightTotal = allMsgs.filter(m=>m.group==='NIGHT').reduce((s,m)=>s+(m.total||0),0);
   const steps = new Set(msgs.map(m=>m.step||1)).size;
-  const cancelled = msgs.filter(m=>m.cancelled).length;
+  const cancelled = allMsgs.filter(m=>m.cancelled).length;
 
+  // Grand total
   const el = document.getElementById('t-grand');
   if (el) {
     setTimeout(()=>{
@@ -447,6 +472,19 @@ function renderTotals(msgs, rejected) {
       el.style.color = grand<0?'var(--red)':'var(--gold)';
     }, 650);
   }
+  // Day total
+  const del = document.getElementById('t-day');
+  if (del) setTimeout(()=>{
+    del.textContent=(dayTotal<0?'-₹':'₹')+Math.abs(dayTotal).toLocaleString('en-IN');
+    del.style.color = dayTotal<0?'var(--red)':'#f5a623';
+  }, 650);
+  // Night total
+  const nel = document.getElementById('t-night');
+  if (nel) setTimeout(()=>{
+    nel.textContent=(nightTotal<0?'-₹':'₹')+Math.abs(nightTotal).toLocaleString('en-IN');
+    nel.style.color = nightTotal<0?'var(--red)':'var(--blue)';
+  }, 650);
+
   anim('t-msgs', msgs.length);
   anim('t-steps', steps);
   anim('t-cancelled', cancelled);
@@ -597,10 +635,11 @@ function exportCSV() {
 
 // ── RESET
 async function doReset() {
-  if(!confirm(currentDate+' ka '+currentMode+' data reset karna hai?'))return;
+  const grp = currentMode.toUpperCase();
+  if(!confirm(currentDate+' ka '+grp+' data reset karna hai?'))return;
   try{
-    await fetch('/api/reset?date='+currentDate,{method:'POST'});
-    toast('🔄 Reset Done!');
+    await fetch('/api/reset?date='+currentDate+'&group='+grp,{method:'POST'});
+    toast('🔄 '+grp+' Reset Done!');
     loadData();
   }catch{toast('Reset failed!');}
 }
