@@ -58,9 +58,16 @@ function getAllDates() {
   return Object.keys(load().sessions).sort().reverse();
 }
 
-function resetDate(date) {
+function resetDate(date, group) {
   const data = load();
-  data.sessions[date] = { messages: [], rejected: [] };
+  if (!data.sessions[date]) return;
+  if (group) {
+    // Sirf us group ka data delete karo
+    data.sessions[date].messages = (data.sessions[date].messages||[]).filter(m => m.group !== group);
+    data.sessions[date].rejected = (data.sessions[date].rejected||[]).filter(r => r.group !== group);
+  } else {
+    data.sessions[date] = { messages: [], rejected: [] };
+  }
   save(data);
 }
 
