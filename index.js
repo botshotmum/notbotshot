@@ -15,7 +15,7 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'panel.ht
 app.get('/panel', (req, res) => res.sendFile(path.join(__dirname, 'public', 'panel.html')));
 app.get('/api/data', (req, res) => res.json(db.getDataForDate(req.query.date || db.getSessionDate())));
 app.get('/api/rejected', (req, res) => res.json(db.getRejected(req.query.date || db.getSessionDate())));
-app.post('/api/reset', (req, res) => { db.resetDate(req.query.date || db.getSessionDate()); res.json({ ok: true }); });
+app.post('/api/reset', (req, res) => { db.resetDate(req.query.date || db.getSessionDate(), req.query.group || null); res.json({ ok: true }); });
 
 // QR code page — Railway pe scan karne ke liye
 let currentQR = null;
