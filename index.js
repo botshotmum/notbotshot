@@ -44,13 +44,16 @@ app.listen(3000, () => console.log('🌐 Panel: http://localhost:3000/panel.html
 const GROUPS = {
   DAY:   '120363403626551391@g.us',
   NIGHT: '120363419264594279@g.us',
+  TEST:  '120363408105704264@g.us',
 };
 
 // ── STICKER HASH → STEP MAP ─────────────────────────────────────────────────
 const STICKER_STEP_MAP = {
-  // 'abcd1234abcd1234': 1,
-  // 'efgh5678efgh5678': 2,
-  // Fill karo: bot chalao → terminal mein hash dikhega → yahan daalo
+  '8b0d908617115e1a': 1,
+  'afa127f1b24ef210': 2,
+  '23037cdea033000b': 3,
+  '50d9712b47e5e00b': 4,
+  'e6d695c5a23d9290': 5,
 };
 
 // ── MARKETS ─────────────────────────────────────────────────────────────────
@@ -182,33 +185,47 @@ client.on('message', async (msg) => {
     const chat = await msg.getChat();
     const gid = chat.id._serialized;
 
+    // Group ID logger — sabhi groups print karo
+    if (chat.isGroup) {
+      console.log(`📋 Group: "${chat.name}" | ID: ${gid}`);
+    }
+
     // Only our groups
-    const session_type = gid === GROUPS.DAY ? 'DAY' : gid === GROUPS.NIGHT ? 'NIGHT' : null;
+    const session_type = gid === GROUPS.DAY ? 'DAY' : gid === GROUPS.NIGHT ? 'NIGHT' : gid === GROUPS.TEST ? 'DAY' : null;
     if (!session_type) return;
 
-    // ── STICKER/IMAGE = Step switch ────────────────────────────────────
-    if (msg.type === 'sticker' || msg.type === 'image') {
-      const cap = (msg.caption || '').trim();
-      if (/^[1-5]$/.test(cap)) {
-        currentStep = parseInt(cap);
-        console.log(`📌 Step → ${currentStep} (caption)`);
-        return;
-      }
+    // ── STICKER = Step switch ───────────────────────────────────────────
+    if (msg.type === 'sticker') {
       try {
         const media = await msg.downloadMedia();
-        if (media?.data) {
+        if (media && media.data) {
           const hash = crypto.createHash('sha256').update(media.data).digest('hex').slice(0, 16);
-          console.log(`🎴 Sticker hash: "${hash}" — STICKER_STEP_MAP mein daalo!`);
-          const step = STICKER_STEP_MAP[hash];
-          if (step) { currentStep = step; console.log(`📌 Step → ${currentStep}`); }
+          console.log(`🎴 Hash: ${hash}`);
+          if (STICKER_STEP_MAP[hash]) {
+            const closedStep = STICKER_STEP_MAP[hash];
+            currentStep = closedStep + 1;
+            console.log(`📌 Step ${closedStep} CLOSED → Step ${currentStep} STARTED`);
+          }
         }
-      } catch(e) {}
+      } catch(e) { console.log('Sticker err:', e.message); }
       return;
     }
+
+    if (msg.type === 'image' || msg.type === 'video') return;
 
     if (msg.type !== 'chat') return;
     const text = msg.body.trim();
     if (!text) return;
+
+    // ── STEP COMMAND: /s1 /s2 /s3 /s4 /s5 ───────────────────────────
+    // /s1 = Step 1 band, Step 2 shuru
+    const stepCmd = text.match(/^\/s([1-5])$/i);
+    if (stepCmd) {
+      const closedStep = parseInt(stepCmd[1]);
+      currentStep = closedStep + 1;
+      console.log(`📌 /s${closedStep} → Step ${closedStep} CLOSED, Step ${currentStep} STARTED`);
+      return;
+    }
 
     // ── CANCEL: ❌ + quoted msg ────────────────────────────────────────
     if (/❌/.test(text) && msg.hasQuotedMsg) {
