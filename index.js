@@ -44,7 +44,6 @@ app.listen(3000, () => console.log('🌐 Panel: http://localhost:3000/panel.html
 const GROUPS = {
   DAY:   '120363403626551391@g.us',
   NIGHT: '120363419264594279@g.us',
-  TEST:  '120363408105704264@g.us',
 };
 
 // ── STICKER HASH → STEP MAP ─────────────────────────────────────────────────
